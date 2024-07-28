@@ -1,0 +1,9 @@
+*.pem
+
+# Terraform files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform*
+*.tfvars
+tfplan

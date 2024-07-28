@@ -1,0 +1,53 @@
+variable "aws_region" {
+  description = "AWS region"
+  default     = "us-west-2"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for VPC"
+  default     = "10.0.0.0/16"
+}
+
+variable "public_subnet_cidr" {
+  description = "CIDR block for public subnet"
+  default     = "10.0.1.0/24"
+}
+
+variable "availability_zone" {
+  description = "Availability Zone"
+  default     = "us-west-2a"
+}
+
+variable "instance_count" {
+  description = "Number of EC2 instances to create"
+  default     = 1
+}
+
+variable "ami_id" {
+  description = "AMI ID for EC2 instances"
+  default     = "ami-074be47313f84fa38"  # Amazon Linux 2023 x86
+}
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  default     = "t2.micro"
+}
+
+variable "key_name" {
+  description = "Name of the EC2 key pair"
+  default = "kubeForgeKey"
+}
+
+variable "key_file" {
+  description = "Path to the private key file"
+  type        = string
+  default     = "path/to/default/key.pem"
+}
+
+variable "ec2_user" {
+  default = "ec2-user"
+}
+
+variable "log_file" {
+  default = "../setup.log"
+}
