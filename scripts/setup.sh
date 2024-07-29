@@ -23,7 +23,7 @@ KEY_FILE=$(terraform output -raw key_path)
 
 cd .. 
 
-ansible-playbook ansible/playbook.yml
+ansible-playbook ansible/site.yml
 
 log_message "Setup Complete"
 

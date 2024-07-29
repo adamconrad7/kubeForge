@@ -1,0 +1,14 @@
+- name: Ensure K3s is running on control plane
+  systemd:
+    name: k3s
+    state: started
+    enabled: yes
+
+- name: Get K3s token
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: node_token
+
+- name: Store K3s token
+  set_fact:
+    k3s_node_token: "{{ node_token['content'] | b64decode | regex_replace('\n', '') }}"

@@ -1,0 +1,13 @@
+---
+- name: Setup and install Kubernetes cluster
+  hosts: all
+  become: true
+  roles:
+    - prep
+    - install
+    #
+- name: Configure Kubernetes control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - control_plane

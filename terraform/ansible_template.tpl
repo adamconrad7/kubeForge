@@ -1,7 +1,7 @@
-[controller]
+[control_plane]
 conroller ansible_host=${controller_ip} ansible_user=${ssh_user}
 
-[nodes]
+[worker]
 %{ for index, ip in instance_ips ~}
 instance-${index} ansible_host=${ip} ansible_user=${ssh_user}
 %{ endfor ~}

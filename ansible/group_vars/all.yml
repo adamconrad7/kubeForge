@@ -1,2 +1,5 @@
 k3s_version: v1.30.2+k3s2
 crio_version: v1.30  
+#RedHat: '/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin'
+systemd_dir: /etc/systemd/system
+server_init_args: {} 

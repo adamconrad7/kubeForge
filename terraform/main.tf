@@ -117,6 +117,6 @@ resource "local_file" "ansible_inventory" {
     ssh_user   = var.ssh_user
     key_path = abspath(var.key_path)
   })
-  filename = "${path.module}/../ansible/inventory.yml"
+  filename = "${path.module}/../ansible/inventory/hosts.yml"
 }
 
