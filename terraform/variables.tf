@@ -38,13 +38,13 @@ variable "key_name" {
   default = "kubeForgeKey"
 }
 
-variable "key_file" {
+variable "key_path" {
   description = "Path to the private key file"
   type        = string
   default     = "path/to/default/key.pem"
 }
 
-variable "ec2_user" {
+variable "ssh_user" {
   default = "ec2-user"
 }
 

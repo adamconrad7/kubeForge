@@ -2,6 +2,5 @@
 
 # Shared configuration file
 
-# Terraform directory
 TERRAFORM_DIR="./terraform"
-
+ANSIBLE_CONFIG="./ansible/ansible.cfg"

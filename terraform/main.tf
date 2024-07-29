@@ -1,10 +1,7 @@
-# Configure the AWS Provider
 provider "aws" {
   region = var.aws_region
 }
 
-#
-# Create VPC
 resource "aws_vpc" "kubeforge_vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
@@ -14,8 +11,7 @@ resource "aws_vpc" "kubeforge_vpc" {
     Name = "kubeforge-vpc"
   }
 }
-#
-# Create Internet Gateway
+
 resource "aws_internet_gateway" "kubeforge_igw" {
   vpc_id = aws_vpc.kubeforge_vpc.id
 
@@ -24,7 +20,6 @@ resource "aws_internet_gateway" "kubeforge_igw" {
   }
 }
 
-# Create Public Subnet
 resource "aws_subnet" "kubeforge_public_subnet" {
   vpc_id                  = aws_vpc.kubeforge_vpc.id
   cidr_block              = var.public_subnet_cidr
@@ -36,7 +31,6 @@ resource "aws_subnet" "kubeforge_public_subnet" {
   }
 }
 
-# Create Route Table
 resource "aws_route_table" "kubeforge_public_rt" {
   vpc_id = aws_vpc.kubeforge_vpc.id
 
@@ -50,13 +44,11 @@ resource "aws_route_table" "kubeforge_public_rt" {
   }
 }
 
-# Associate Public Subnet with Route Table
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.kubeforge_public_subnet.id
   route_table_id = aws_route_table.kubeforge_public_rt.id
 }
 
-# Create Security Group
 resource "aws_security_group" "kubeforge_sg" {
   name        = "kubeforge-sg"
   description = "Security group for KubeForge instances"
@@ -81,21 +73,30 @@ resource "aws_security_group" "kubeforge_sg" {
   }
 }
 
-
-# Generate a key pair
 resource "tls_private_key" "pk" {
   algorithm = "RSA"
   rsa_bits  = 4096
 }
 
-# Create AWS key pair
 resource "aws_key_pair" "generated_key" {
   key_name   = var.key_name
   public_key = tls_private_key.pk.public_key_openssh
 }
 
-# Create EC2 Instances
-resource "aws_instance" "kubeforge_instances" {
+resource "aws_instance" "controller" {
+  #count                  = var.instance_count
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  key_name               = aws_key_pair.generated_key.key_name
+  vpc_security_group_ids = [aws_security_group.kubeforge_sg.id]
+  subnet_id              = aws_subnet.kubeforge_public_subnet.id
+
+  tags = {
+    Name = "kubeforge-controller"
+  }
+}
+
+resource "aws_instance" "nodes" {
   count                  = var.instance_count
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -107,3 +108,15 @@ resource "aws_instance" "kubeforge_instances" {
     Name = "kubeforge-instance-${count.index + 1}"
   }
 }
+
+resource "local_file" "ansible_inventory" {
+  content = templatefile("${path.module}/ansible_template.tpl", {
+    controller_ip = aws_instance.controller.public_ip
+	#change to nodes
+    instance_ips = aws_instance.nodes[*].public_ip
+    ssh_user   = var.ssh_user
+    key_path = abspath(var.key_path)
+  })
+  filename = "${path.module}/../ansible/inventory.yml"
+}
+

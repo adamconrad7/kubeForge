@@ -10,7 +10,12 @@ output "public_subnet_id" {
 
 output "instance_public_ips" {
   description = "Public IP addresses of created EC2 instances"
-  value       = aws_instance.kubeforge_instances[*].public_ip
+  value       = aws_instance.nodes[*].public_ip
+}
+
+output "controller_public_ips" {
+  description = "Public IP addresses of controller EC2 instance"
+  value       = aws_instance.controller.public_ip
 }
 
 output "private_key" {
@@ -18,14 +23,13 @@ output "private_key" {
   sensitive = true
 }
 
-output "ec2_user" {
-  value = var.ec2_user
+output "ssh_user" {
+  value = var.ssh_user
 }
 
-output "key_file" {
-  value = var.key_file
+output "key_path" {
+  value = var.key_path
 }
-
 
 output "log_file" {
   value = var.log_file
