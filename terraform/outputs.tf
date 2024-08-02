@@ -8,14 +8,19 @@ output "public_subnet_id" {
   value       = aws_subnet.kubeforge_public_subnet.id
 }
 
-output "instance_public_ips" {
+output "agent_ips" {
   description = "Public IP addresses of created EC2 instances"
-  value       = aws_instance.nodes[*].public_ip
+  value       = aws_instance.agent[*].public_ip
 }
 
-output "controller_public_ips" {
+output "server_ip" {
   description = "Public IP addresses of controller EC2 instance"
-  value       = aws_instance.controller.public_ip
+  value       = aws_instance.server.public_ip
+}
+
+output "server_private_ip" {
+  description = "Public IP addresses of controller EC2 instance"
+  value       = aws_instance.server.private_ip
 }
 
 output "private_key" {

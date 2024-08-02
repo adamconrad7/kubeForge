@@ -1,7 +1,25 @@
 ---
-- name: Determine OS family
+#- name: Determine OS family
+#  set_fact:
+#    is_amazon_linux: "{{ ansible_distribution == 'Amazon' }}"
+
+- name: Check current SELinux state
+  command: getenforce
+  register: selinux_status
+  changed_when: false
+
+- name: Set SELinux to disabled state
+  ansible.posix.selinux:
+    state: disabled
+  when: 
+    - ansible_os_family == "RedHat"
+    - selinux_status.stdout != 'Disabled'
+  register: selinux_disable
+
+- name: Set reboot required fact
   set_fact:
-    is_amazon_linux: "{{ ansible_distribution == 'Amazon' }}"
+    requires_reboot: true
+  when: selinux_disable.changed
 
 - name: Set same timezone on every Server
   community.general.timezone:
@@ -20,11 +38,6 @@
   with_items:
     - swap
     - none
-
-- name: Set SELinux to disabled state
-  ansible.posix.selinux:
-    state: disabled
-  when: ansible_os_family == "RedHat"
 
 - name: Enable IPv4 forwarding
   ansible.posix.sysctl:
@@ -82,3 +95,15 @@
     line: 'Defaults    secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin'
     validate: 'visudo -cf %s'
   when: ansible_os_family == "RedHat"
+
+- name: Ensure script directory exists
+  file:
+    path: /usr/local/src/k3s
+    state: directory
+    mode: '0755'
+
+- name: Download K3s installation script
+  get_url:
+    url: https://get.k3s.io
+    dest: /usr/local/src/k3s/k3s-install.sh
+    mode: '0755'

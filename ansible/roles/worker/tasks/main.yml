@@ -1,0 +1,51 @@
+---
+
+- name: Set agent number
+  set_fact:
+    agent_number: "{{ groups['agent'].index(inventory_hostname) }}"
+
+- name: Create K3s config directory
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Create K3s config file
+  template:
+    src: k3s-agent-config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    mode: '0644'
+
+- name: Start K3s-agent
+  environment:
+    #    INSTALL_K3S_FORCE_RESTART: True
+    #    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    #    K3S_URL: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
+    #    K3S_TOKEN: "{{ hostvars[groups['server'][0]]['k3s_node_token'] }}"
+    #K3S_NODE_NAME: "k3s-agent{{ agent_number }}"
+  command: sh /usr/local/src/k3s/k3s-install.sh
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for K3s agent service to be active
+  systemd:
+    name: k3s-agent
+    state: started
+  register: k3s_agent_service
+  until: k3s_agent_service.status.ActiveState == 'active'
+  retries: 30
+  delay: 5
+
+- name: Verify named worker node joined the cluster
+  command: k3s kubectl get nodes 
+  register: get_nodes
+  changed_when: false
+  #failed_when: "get_nodes.rc != 0 or 'agent{{ agent_number }}' not in get_nodes.stdout"
+
+  failed_when: get_nodes.rc != 0 or 'agent' + agent_number|string not in get_nodes.stdout
+  delegate_to: "{{ groups['server'][0] }}"
+  become: yes
+  retries: 10
+  delay: 10
+  #until: "'agent{{ agent_number }}' in get_nodes.stdout"
+  until: "'agent' + agent_number|string in get_nodes.stdout"

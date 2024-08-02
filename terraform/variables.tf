@@ -20,7 +20,7 @@ variable "availability_zone" {
 
 variable "instance_count" {
   description = "Number of EC2 instances to create"
-  default     = 1
+  default     = 2
 }
 
 variable "ami_id" {

@@ -1,13 +1,41 @@
 ---
-- name: Setup and install Kubernetes cluster
+- name: Ensure all hosts are reachable
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Wait for all hosts to become reachable
+      wait_for_connection:
+        timeout: 30
+
+- name: Setup cluster
   hosts: all
   become: true
+  vars:
+    requires_reboot: false
   roles:
     - prep
-    - install
-    #
-- name: Configure Kubernetes control plane
-  hosts: control_plane
+  tasks:
+    - name: Reboot if required
+      reboot:
+        msg: "Rebooting due to system configuration changes"
+      when: requires_reboot|default(false)
+
+    - name: Wait for system to come back online
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+      when: requires_reboot|default(false)
+
+- name: Setup control plane
+  hosts: server
   become: true
   roles:
+    - common
     - control_plane
+
+- name: Setup workers
+  hosts: agent
+  become: true
+  roles:
+    - common
+    - worker

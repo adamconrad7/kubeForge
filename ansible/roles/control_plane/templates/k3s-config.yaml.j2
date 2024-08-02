@@ -1,0 +1,7 @@
+---
+# Server configuration
+
+node-name:  "k3s-server"
+k3s-version: "{{ k3s_version }}"
+server: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
+

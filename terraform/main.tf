@@ -61,6 +61,20 @@ resource "aws_security_group" "kubeforge_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #ingress {
+  #  from_port   = 6443
+  #  to_port     = 6443
+  #  protocol    = "tcp"
+  #  self        = true
+  #}
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -83,7 +97,7 @@ resource "aws_key_pair" "generated_key" {
   public_key = tls_private_key.pk.public_key_openssh
 }
 
-resource "aws_instance" "controller" {
+resource "aws_instance" "server" {
   #count                  = var.instance_count
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -96,7 +110,7 @@ resource "aws_instance" "controller" {
   }
 }
 
-resource "aws_instance" "nodes" {
+resource "aws_instance" "agent" {
   count                  = var.instance_count
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -111,9 +125,10 @@ resource "aws_instance" "nodes" {
 
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/ansible_template.tpl", {
-    controller_ip = aws_instance.controller.public_ip
-	#change to nodes
-    instance_ips = aws_instance.nodes[*].public_ip
+  #content = templatefile("${path.module}/inventory.tpl", {
+    server_ip = aws_instance.server.public_ip
+    server_private_ip = aws_instance.server.private_ip
+    agent_ips = aws_instance.agent[*].public_ip
     ssh_user   = var.ssh_user
     key_path = abspath(var.key_path)
   })

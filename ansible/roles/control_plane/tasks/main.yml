@@ -1,14 +1,81 @@
-- name: Ensure K3s is running on control plane
-  systemd:
-    name: k3s
-    state: started
-    enabled: yes
+---
+- name: Create K3s config directory
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
 
-- name: Get K3s token
-  slurp:
+- name: Create K3s config file
+  template:
+    src: k3s-config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    mode: '0644'
+
+- name: Start K3s
+  environment:
+    #INSTALL_K3S_FORCE_RESTART: True
+    #INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "server {{ server_init_args }}"
+    #K3S_NODE_NAME: "k3s-server"
+  command: sh /usr/local/src/k3s/k3s-install.sh
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for K3s server to be active
+  systemd:
+    name: "{{ k3s_service_name }}"
+    state: started
+  register: k3s_service
+  until: k3s_service.status.ActiveState == 'active'
+  retries: 30
+  delay: 5
+
+- name: Wait for K3 node token
+  ansible.builtin.wait_for:
+    path: /var/lib/rancher/k3s/server/node-token
+    state: present
+    timeout: 300
+
+- name: Get node token
+  ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/node-token
   register: node_token
 
-- name: Store K3s token
-  set_fact:
-    k3s_node_token: "{{ node_token['content'] | b64decode | regex_replace('\n', '') }}"
+- name: Store node token
+  ansible.builtin.set_fact:
+    k3s_node_token: "{{ node_token['content'] | b64decode | trim }}"
+
+- name: Ensure kubectl is installed
+  ansible.builtin.command:
+    cmd: kubectl version --client
+  register: kubectl_version_check
+  changed_when: false
+  failed_when: false
+
+  # sus getting kubectl from  k8s
+- name: Install kubectl
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/{{ k3s_version }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+  when: kubectl_version_check.rc != 0
+
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: ~/.kube
+    state: directory
+    mode: '0755'
+
+- name: Copy kubeconfig
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: ~/.kube/config
+    remote_src: yes
+    mode: '0600'
+
+- name: Update kubeconfig server address
+  ansible.builtin.replace:
+    path: ~/.kube/config
+    regexp: 'https://127.0.0.1:6443'
+    # may need private IP here not sure yet
+    replace: 'https://{{ ansible_host }}:6443'

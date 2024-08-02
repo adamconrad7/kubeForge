@@ -1,4 +1,6 @@
 *.pem
+*hosts.yml
+.DS_Store
 
 # Terraform files
 *.tfstate

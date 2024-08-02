@@ -18,6 +18,6 @@ rm -f $KEY_FILE
 ls -l "$KEY_FILE"
 
 log_message "Destroying resources"
-terraform destroy -auto-approve
+terraform destroy -auto-approve -parallelism=11
 
 log_message "Teardown Complete"

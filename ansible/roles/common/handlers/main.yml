@@ -1,0 +1,5 @@
+- name: Restart K3s
+  systemd:
+    name: "{{ k3s_service_name }}"
+    state: restarted
+  listen: "restart k3s"

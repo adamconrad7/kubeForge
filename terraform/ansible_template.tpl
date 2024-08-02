@@ -1,10 +1,11 @@
-[control_plane]
-conroller ansible_host=${controller_ip} ansible_user=${ssh_user}
+[server]
+server ansible_host=${server_ip} private_ip=${server_private_ip}
 
-[worker]
-%{ for index, ip in instance_ips ~}
-instance-${index} ansible_host=${ip} ansible_user=${ssh_user}
+[agent]
+%{ for index, ip in agent_ips ~}
+agent${index + 1} ansible_host=${ip} 
 %{ endfor ~}
 
 [all:vars]
 ansible_ssh_private_key_file=${key_path}
+ansible_user=ec2-user
