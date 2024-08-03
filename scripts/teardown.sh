@@ -19,5 +19,5 @@ ls -l "$KEY_FILE"
 
 log_message "Destroying resources"
 terraform destroy -auto-approve -parallelism=11
-
+cd .. 
 log_message "Teardown Complete"

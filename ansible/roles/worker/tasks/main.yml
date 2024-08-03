@@ -19,9 +19,10 @@
 - name: Start K3s-agent
   environment:
     #    INSTALL_K3S_FORCE_RESTART: True
-    #    INSTALL_K3S_VERSION: "{{ k3s_version }}"
-    #    K3S_URL: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
-    #    K3S_TOKEN: "{{ hostvars[groups['server'][0]]['k3s_node_token'] }}"
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    K3S_URL: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
+    K3S_TOKEN: "{{ hostvars[groups['server'][0]]['k3s_node_token'] }}"
+
     #K3S_NODE_NAME: "k3s-agent{{ agent_number }}"
   command: sh /usr/local/src/k3s/k3s-install.sh
   args:

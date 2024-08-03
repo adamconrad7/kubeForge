@@ -4,4 +4,11 @@
 node-name:  "k3s-server"
 k3s-version: "{{ k3s_version }}"
 server: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
+node-ip: {{ ansible_default_ipv4.address }}
+advertise-address: {{ ansible_default_ipv4.address }}
+bind-address: {{ ansible_default_ipv4.address }}
 
+# Networking
+flannel-backend: none
+disable-network-policy: true
+disable: servicelb

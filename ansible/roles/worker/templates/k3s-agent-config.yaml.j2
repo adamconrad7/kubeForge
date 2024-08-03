@@ -1,12 +1,7 @@
 ---
 # Agent configuration
 
-k3s-version: "{{ k3s_version }}"
-
-server: "https://{{ hostvars[groups['server'][0]]['private_ip'] }}:6443"
-
-token: "{{ hostvars[groups['server'][0]]['k3s_node_token'] }}"
-
 node-name:  "k3s-agent{{ agent_number }}"
+#k3s-version: "{{ k3s_version }}"
 
-flannel-backend: none
+#flannel-backend: none

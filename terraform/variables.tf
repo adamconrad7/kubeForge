@@ -18,6 +18,16 @@ variable "availability_zone" {
   default     = "us-west-2a"
 }
 
+variable "server_instance_type" {
+  description = "EC2 instance type"
+  default     = "t3a.small"
+}
+
+variable "agent_instance_type" {
+  description = "EC2 instance type"
+  default     = "t2.micro"
+}
+
 variable "instance_count" {
   description = "Number of EC2 instances to create"
   default     = 2
@@ -26,11 +36,6 @@ variable "instance_count" {
 variable "ami_id" {
   description = "AMI ID for EC2 instances"
   default     = "ami-074be47313f84fa38"  # Amazon Linux 2023 x86
-}
-
-variable "instance_type" {
-  description = "EC2 instance type"
-  default     = "t2.micro"
 }
 
 variable "key_name" {

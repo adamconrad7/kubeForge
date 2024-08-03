@@ -1,0 +1,105 @@
+#note
+#
+#Network policy iptables rules are not removed if the K3s configuration is changed to disable the network policy controller. To clean up the configured kube-router network policy rules after disabling the network policy controller, use the k3s-killall.sh script, or clean them using iptables-save and iptables-restore. These steps must be run manually on all nodes in the cluster.
+#
+#iptables-save | grep -v KUBE-ROUTER | iptables-restore
+#ip6tables-save | grep -v KUBE-ROUTER | ip6tables-restore
+---
+- name: Cleanup K3s Cluster
+  hosts: all
+  become: true
+  tasks:
+    - name: Gather service facts
+      service_facts:
+
+    - name: Stop K3s services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - k3s
+        - k3s-agent
+      when: "item in ansible_facts.services"
+      ignore_errors: true
+
+    - name: Run K3s uninstall script for server nodes
+      command: /usr/local/bin/k3s-uninstall.sh
+      when: "'server' in group_names"
+      ignore_errors: true
+
+    - name: Run K3s uninstall script for agent nodes
+      command: /usr/local/bin/k3s-agent-uninstall.sh
+      when: "'agent' in group_names"
+      ignore_errors: true
+
+    - name: Remove K3s and Kubernetes directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/rancher
+        - /var/lib/rancher
+        - /var/lib/kubelet
+        - /var/lib/cni
+        - /var/run/calico
+        - /opt/cni
+        - /var/log/containers
+        - /var/log/pods
+        - ~/.kube
+
+    - name: Remove CNI configuration
+      file:
+        path: /etc/cni/net.d
+        state: absent
+
+    - name: Remove Cilium network interfaces
+      command: "{{ item }}"
+      loop:
+        - ip link delete cilium_host
+        - ip link delete cilium_net
+        - ip link delete cilium_vxlan
+      ignore_errors: true
+
+    - name: Remove K3s-specific sysctl settings
+      sysctl:
+        name: "{{ item }}"
+        state: absent
+        reload: yes
+      loop:
+        - net.ipv4.conf.all.forwarding
+        - net.ipv6.conf.all.forwarding
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+      ignore_errors: true
+
+    - name: Remove br_netfilter module configuration
+      file:
+        path: /etc/modules-load.d/br_netfilter.conf
+        state: absent
+
+    - name: Remove K3s binaries
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/k3s
+        - /usr/local/bin/kubectl
+        - /usr/local/bin/crictl
+        - /usr/local/bin/ctr
+
+    - name: Remove K3s service files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/k3s.service
+        - /etc/systemd/system/k3s-agent.service
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Reboot the server
+      reboot:
+        msg: "Rebooting to complete K3s cleanup"
+        reboot_timeout: 600

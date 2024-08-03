@@ -11,15 +11,35 @@
     dest: /etc/rancher/k3s/config.yaml
     mode: '0644'
 
+    #- name: Start K3s
+    #  environment:
+    #    INSTALL_K3S_FORCE_RESTART: True
+    #    #INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    #    INSTALL_K3S_EXEC: "server {{ server_init_args }}"
+    #    #K3S_NODE_NAME: "k3s-server"
+    #  command: sh /usr/local/src/k3s/k3s-install.sh
+    #  args:
+    #    creates: /usr/local/bin/k3s
+
+    #--node-ip={{ ansible_default_ipv4.address }}
 - name: Start K3s
   environment:
-    #INSTALL_K3S_FORCE_RESTART: True
-    #INSTALL_K3S_VERSION: "{{ k3s_version }}"
-    INSTALL_K3S_EXEC: "server {{ server_init_args }}"
-    #K3S_NODE_NAME: "k3s-server"
+    INSTALL_K3S_EXEC: >-
+      server
+      --flannel-backend=none
+      --disable-network-policy
   command: sh /usr/local/src/k3s/k3s-install.sh
   args:
     creates: /usr/local/bin/k3s
+  register: k3s_install
+  changed_when: k3s_install.rc == 0
+
+- name: Ensure K3s is started and enabled
+  systemd:
+    name: k3s
+    state: started
+    enabled: yes
+  when: k3s_install.changed
 
 - name: Wait for K3s server to be active
   systemd:
@@ -78,4 +98,68 @@
     path: ~/.kube/config
     regexp: 'https://127.0.0.1:6443'
     # may need private IP here not sure yet
-    replace: 'https://{{ ansible_host }}:6443'
+    replace: 'https://{{ ansible_default_ipv4.address }}:6443'
+
+- name: Verify kubeconfig uses private IP
+  command: grep {{ ansible_default_ipv4.address }} ~/.kube/config
+  register: kubeconfig_check
+  changed_when: false
+  failed_when: kubeconfig_check.rc != 0
+
+- name: Install Cilium CLI
+  get_url:
+    url: https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
+    dest: /tmp/cilium-cli.tar.gz
+    mode: '0644'
+
+- name: Extract Cilium CLI
+  ansible.builtin.unarchive:
+    src: /tmp/cilium-cli.tar.gz
+    dest: /usr/local/bin
+    remote_src: yes
+    mode: '0755'
+- name: Install Cilium
+  command: cilium install --version 1.16.0 --set=ipam.operator.clusterPoolIPv4PodCIDRList="10.42.0.0/16"
+  environment:
+    KUBECONFIG: /root/.kube/config
+
+- name: Check Cilium status
+  command: cilium status --wait
+  environment:
+    KUBECONFIG: /root/.kube/config
+  register: cilium_status
+  changed_when: false
+  failed_when: "'OK' not in cilium_status.stdout"
+  retries: 5
+  delay: 10
+  until: cilium_status is success
+
+- name: Display Cilium status
+  debug:
+    var: cilium_status.stdout_lines
+
+    #- name: Run Cilium connectivity test
+    #  command: cilium connectivity test
+    #  environment:
+    #    KUBECONFIG: /root/.kube/config
+    #  register: cilium_connectivity
+    #  changed_when: false
+    #  failed_when: 
+    #    - "'tests successful' not in cilium_connectivity.stdout"
+    #    - "'0 warnings' not in cilium_connectivity.stdout"
+    #  retries: 2
+    #  delay: 30
+    #  until: cilium_connectivity is success
+
+    #- name: Display Cilium connectivity test results
+    #  debug:
+    #    var: cilium_connectivity.stdout_lines
+
+    #- name: Check if all Cilium tests passed
+    #  assert:
+    #    that:
+    #      - "'OK' in cilium_status.stdout"
+    #      - "'tests successful' in cilium_connectivity.stdout"
+    #      - "'0 warnings' in cilium_connectivity.stdout"
+    #    fail_msg: "Cilium checks failed. Please review the output."
+    #    success_msg: "All Cilium checks passed successfully."

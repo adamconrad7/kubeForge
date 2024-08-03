@@ -107,3 +107,8 @@
     url: https://get.k3s.io
     dest: /usr/local/src/k3s/k3s-install.sh
     mode: '0755'
+  register: download_result
+  until: download_result is succeeded
+  retries: 5
+  delay: 10
+

@@ -49,6 +49,10 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.kubeforge_public_rt.id
 }
 
+data "http" "myip" {
+  url = "https://ipv4.icanhazip.com"
+}
+
 resource "aws_security_group" "kubeforge_sg" {
   name        = "kubeforge-sg"
   description = "Security group for KubeForge instances"
@@ -61,12 +65,13 @@ resource "aws_security_group" "kubeforge_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  #ingress {
-  #  from_port   = 6443
-  #  to_port     = 6443
-  #  protocol    = "tcp"
-  #  self        = true
-  #}
+ ingress {
+    description = "Allow access to Kubernetes API"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["${chomp(data.http.myip.response_body)}/32"]
+  }
 
   ingress {
     from_port   = 0
@@ -100,7 +105,7 @@ resource "aws_key_pair" "generated_key" {
 resource "aws_instance" "server" {
   #count                  = var.instance_count
   ami                    = var.ami_id
-  instance_type          = var.instance_type
+  instance_type          = var.server_instance_type
   key_name               = aws_key_pair.generated_key.key_name
   vpc_security_group_ids = [aws_security_group.kubeforge_sg.id]
   subnet_id              = aws_subnet.kubeforge_public_subnet.id
@@ -113,7 +118,7 @@ resource "aws_instance" "server" {
 resource "aws_instance" "agent" {
   count                  = var.instance_count
   ami                    = var.ami_id
-  instance_type          = var.instance_type
+  instance_type          = var.agent_instance_type
   key_name               = aws_key_pair.generated_key.key_name
   vpc_security_group_ids = [aws_security_group.kubeforge_sg.id]
   subnet_id              = aws_subnet.kubeforge_public_subnet.id
