@@ -59,6 +59,7 @@ resource "aws_security_group" "kubeforge_sg" {
   vpc_id      = aws_vpc.kubeforge_vpc.id
 
   ingress {
+    description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -66,7 +67,25 @@ resource "aws_security_group" "kubeforge_sg" {
   }
 
  ingress {
-    description = "Allow access to Kubernetes API"
+    description = "Gateway API"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+ ingress {
+    description = "Gateway API"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+
+ ingress {
+    description = "allow access to kubernetes api"
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
@@ -130,7 +149,6 @@ resource "aws_instance" "agent" {
 
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/ansible_template.tpl", {
-  #content = templatefile("${path.module}/inventory.tpl", {
     server_ip = aws_instance.server.public_ip
     server_private_ip = aws_instance.server.private_ip
     agent_ips = aws_instance.agent[*].public_ip

@@ -17,16 +17,22 @@ chmod 400 "$(terraform output -raw key_path)"
 log_message "Set permissions on key file"
 ls -l "$(terraform output -raw key_path)"
 
-INSTANCE_IP=$(terraform output -json instance_public_ips | jq -r '.[0]')
-EC2_USER=$(terraform output -raw ssh_user)
-KEY_FILE=$(terraform output -raw key_path)
-
 cd ..
 
-# should have config file
-echo ansible --version
-
 ansible-playbook ansible/site.yml -i ansible/inventory/hosts.yml
+
+export KUBECONFIG=ansible/kubeconfig
+
+kubectl get pods -A
+kubectl get services -A
+#kubectl create ns cilium-test
+#kubectl apply -n cilium-test -f https://raw.githubusercontent.com/cilium/cilium/1.16.0/examples/kubernetes/connectivity-check/connectivity-check.yaml
+#kubectl get pods -n cilium-test
+kubectl get gateway -A
+kubectl get all -A
+
+#kubectl create namespace monitoring
+#kubectl apply -f monitoring/grafana.yaml
 
 log_message "Setup Complete"
 

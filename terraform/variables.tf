@@ -20,7 +20,7 @@ variable "availability_zone" {
 
 variable "server_instance_type" {
   description = "EC2 instance type"
-  default     = "t3a.small"
+  default     = "t3a.medium"
 }
 
 variable "agent_instance_type" {
@@ -30,7 +30,7 @@ variable "agent_instance_type" {
 
 variable "instance_count" {
   description = "Number of EC2 instances to create"
-  default     = 2
+  default     = 0
 }
 
 variable "ami_id" {
